@@ -1,0 +1,425 @@
+---
+title: "Project2"
+author: "Chhiring Lama"
+date: "2024-02-22"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Dataset 1 - Purchases log data
+
+#Introduction
+The dataset contains transactional information from purchases made across various cities in the USA, spanning the period from January to December 2012. My focus is specifically on analyzing purchase trends during January and December, periods that coincide with the start of a new school session and the Christmas holiday season, respectively. The data was obtained from the Kaggle website at the provided URL. https://www.kaggle.com/datasets/dsfelix/purchasestxt/data
+
+# Load required libraries
+```{r, echo=TRUE}
+library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(R.utils)
+```
+
+# Load the data 
+
+```{r, echo=TRUE}
+urlfile <- "https://media.githubusercontent.com/media/topkelama/lfsStorage/main/purchases_log.txt" 
+
+```
+
+# Read the raw data
+
+```{r, echo=TRUE}
+#read.table() and read.csv() did not work properly
+#used read.delim()
+purchases_log <- read.delim(file = urlfile, header = FALSE, stringsAsFactors = FALSE)
+
+```
+
+List first 6 rows 
+
+```{r, echo=TRUE}
+head(purchases_log)
+```
+# Transformation
+Assign with the appropriate column names
+```{r, echo=TRUE}
+colnames(purchases_log) <- c("Date", "Time", "City", "Purchased_Item", "Amount", "Payment_method")
+head(purchases_log)
+```
+
+```{r, echo=FALSE}
+#
+#purchases_log$Purchased_Item <- sapply(strsplit(purchases_log$Purchased_Item, "\\t"), `[`, 1)
+```
+
+Drop the unnecessary column
+
+```{r, echo=TRUE}
+purchases_log_cleaned <- purchases_log %>%
+  select(-Time)
+head(purchases_log_cleaned)
+```
+
+ Transform the data to long format with City as key and City_name as value
+ 
+```{r, echo=TRUE}
+# Transform data to long format
+purchases_log_long <- gather(purchases_log_cleaned, key = "Variable", value = "Value", -Date, -Amount, -Purchased_Item, -Payment_method)
+
+# Display the first few rows of the long-format data
+head(purchases_log_long)
+```
+
+Assign appropriate names to the variable and value column.
+
+```{r, echo=TRUE}
+# Rename the Variable and Value columns
+names(purchases_log_long)[names(purchases_log_long) == "Variable"] <- "City"
+names(purchases_log_long)[names(purchases_log_long) == "Value"] <- "City_Name"
+
+# Display the first few rows of the renamed data
+head(purchases_log_long)
+```
+
+Analysis on August and December purchase trend
+
+```{r, echo=TRUE}
+#convert the string to Date data type
+purchases_log_long$Date <- as.Date(purchases_log_long$Date)
+
+# Filter data for December and August
+purchases_log_filtered_months <- purchases_log_long %>%
+  filter(month(Date) %in% c(8, 12))  # Include only August (8) and December (12)
+
+# Group by Date and calculate total amount spent
+purchases_trend <- purchases_log_filtered_months %>%
+  group_by(Date) %>%
+  summarise(Total_Amount = sum(Amount))
+```
+
+
+
+```{r, echo=TRUE}
+head(purchases_trend)
+```
+
+Extract only month from the date
+
+```{r, echo=TRUE}
+# Create a new column for total amount spent
+purchases_log_filtered_months <- purchases_log_filtered_months %>%
+  mutate(Total_Amount = as.numeric(gsub("\\D", "", Amount))) # Remove non-numeric characters from Amount and convert to numeric
+
+# Extract month from Date
+purchases_log_filtered_months$Month <- month(purchases_log_filtered_months$Date)
+
+# Group by month and calculate total amount spent for each month
+monthly_totals <- purchases_log_filtered_months %>%
+  group_by(Month) %>%
+  summarise(Total_Amount = sum(Total_Amount, na.rm = TRUE))
+```
+
+# Analysis
+Total amount spent before new school session and before Christmas
+```{r, echo=TRUE}
+#Total amount spent in the month of August and December
+monthly_totals
+```
+
+
+
+```{r, echo=TRUE}
+# Calculate mean, median, mode, min, and max amount for each month
+monthly_stats <- monthly_totals %>%
+  summarise(
+    Mean_Amount = mean(Total_Amount, na.rm = TRUE),
+    Median_Amount = median(Total_Amount, na.rm = TRUE),
+        Min_Amount = min(Total_Amount, na.rm = TRUE),
+    Max_Amount = max(Total_Amount, na.rm = TRUE)
+  )
+
+# Print monthly statistics
+print(monthly_stats)
+```
+Plot the purchase trend for August
+
+```{r, echo=TRUE}
+# Plot the trend
+august_trend <- purchases_trend %>%
+  filter(month(Date) == 8)
+
+# Plot the trend for August
+ggplot(august_trend, aes(x = Date, y = Total_Amount/10000)) +  # divided by 10000 to make the value smaller and clearer 
+  geom_line() +
+  geom_smooth(method = "loess") +
+  labs(title = "Trend of Total Amount Spent in August",
+       x = "Date",
+       y = "Total Amount") +
+  theme_minimal()
+
+```
+The blue smooth line shows that around August 15th the purchase is decreased. 
+
+Plot the purchase trend for December
+
+```{r, echo=TRUE}
+# Filter the data for December and remove missing values
+december_trend <- purchases_trend %>%
+  filter(month(Date) == 12) %>%
+  na.omit()
+
+# Plot the trend for December
+ggplot(december_trend, aes(x = Date, y = Total_Amount/10000)) +
+  geom_line() +
+  geom_smooth(method = "loess") +
+  labs(title = "Trend of Total Amount Spent in December",
+       x = "Date",
+       y = "Total Amount") +
+  theme_minimal()
+```
+We can see that the blue smooth line is slightly moving downward after 2nd week of the December.
+
+
+Conclusion:
+Based on the analysis, we observed a consistent spending pattern in August and December, with the amount spent ranging from approximately 14710000 to 14810000 during the second week of August and the first and second weeks of December. This indicates a potential correlation between spending and the festive season or the beginning of a new school session. However, further analysis is needed to confirm this correlation.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## Dataset 2 - MTA Ridership
+
+Anna Moy intends to utilize this dataset to analyze the changes in ridership trends over time for various modes of transportation. Specifically, she is interested in studying the ridership patterns for Subway, Buses, LIRR, and Metro North across the years 2020, 2021, and 2022. Furthermore, she plans to compare the ridership between Buses and Subways, and identify the maximum and minimum ridership levels across all modes of transportation. My focus is on exploring the ridership trends for all modes of transportation during the pandemic lockdown period in NYC.The data was obtained from the following URL.  https://data.ny.gov/Transportation/MTA-Daily-Ridership-Data-Beginning-2020/vxuj-8kew/data_preview
+
+# Load the data
+```{r, echo=TRUE}
+mta_ridership <- read.csv("https://raw.githubusercontent.com/topkelama/lfsStorage/main/MTA_Daily_Ridership_Data__Beginning_2020_20240227.csv")
+```
+
+```{r, echo=TRUE}
+head(mta_ridership)
+```
+
+# Data transformation and Cleaning
+
+```{r, echo=TRUE}
+# Remove unnecessary columns
+mta_ridership_clean <- mta_ridership[, c("Date", "Subways..Total.Estimated.Ridership", "Buses..Total.Estimated.Ridership", "LIRR..Total.Estimated.Ridership", "Metro.North..Total.Estimated.Ridership")]
+
+# Rename the columns
+colnames(mta_ridership_clean) <- c("Date", "Total_SubwEst_ride/day", "Total_BusEst_ride/day", "Total_LirrEst_ride/day", "Total_MetroNorthEst_ride/day")
+
+# Display the first few rows of the cleaned data with renamed columns
+head(mta_ridership_clean)
+```
+
+Convert the date string to Date data type, remove the rows with NA.
+
+```{r, echo=TRUE}
+# Remove rows with NA values
+mta_ridership_clean <- na.omit(mta_ridership_clean)
+
+# Convert "Date" column to a Date object
+mta_ridership_clean$Date <- as.Date(mta_ridership_clean$Date, format = "%m/%d/%Y")
+
+# Display the first few rows of the cleaned data with renamed columns and without NAs
+head(mta_ridership_clean)
+
+```
+
+Check the data type 
+
+```{r, echo=TRUE}
+str(mta_ridership_clean)
+```
+# Data Tidying 
+Narrow down to specified date range and convert the data frame to long format
+
+```{r, echo=TRUE}
+# Filter the data for the specified date range
+lockdown_period <- mta_ridership_clean[mta_ridership_clean$Date >= as.Date("2020-03-22") & mta_ridership_clean$Date <= as.Date("2020-05-07"), ]
+
+# Convert the data frame to long format
+lockdown_long <- gather(lockdown_period, key = "Transportation_Mode", value = "Ridership", -Date)
+
+# Display the first few rows of the long format data
+lockdown_long
+```
+
+# Analysis
+
+```{r, echo=TRUE}
+summary_stats <- lockdown_long %>%
+  group_by(Transportation_Mode) %>%
+  summarize(
+    Mean_Ridership = mean(Ridership, na.rm = TRUE),
+    Median_Ridership = median(Ridership, na.rm = TRUE),
+    Max_Ridership = max(Ridership, na.rm = TRUE),
+    Min_Ridership = min(Ridership, na.rm = TRUE)
+  )
+
+# Print the summary statistics
+print(summary_stats)
+```
+
+# visualize the data 
+
+```{r, echo=TRUE}
+# Create a boxplot of the ridership for each transportation mode
+ggplot(lockdown_long, aes(x = Transportation_Mode, y = Ridership)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Ridership Across Transportation Modes",
+       y = "Ridership")
+```
+Three box plots are flattened to the bottom and almost speak nothing. 
+
+
+
+Here, I have changed the ridership value to log form to get clearer visualization. 
+
+```{r, echo=TRUE}
+ggplot(lockdown_long, aes(x = Transportation_Mode, y = log(Ridership))) +
+  geom_boxplot() +
+  labs(title = "Distribution of Log-Transformed Ridership Across Transportation Modes",
+       y = "Log-Ridership")
+```
+The Ridership value on the y coordinate is in Log form, when we convert this value to exponential it will match with aforementioned central tendency shown by summary_stats. 
+
+To sum up, during the NYC lockdown period from March 22nd to May 7th, 2020, the Subway had the highest ridership, with an average of 434,554 passengers per day. Metro North followed with an average of 28,396 passengers, while Buses had an average of 21,416 and LIRR had the lowest at 10,021 passengers per day.
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## Dataset 3 - Global Inflation
+
+The dataset provided offers a glimpse into global inflation rates, highlighting the changing economic landscapes of various regions. To align with Mohammed Rehman's suggestion, I begin by examining the broader trend of inflation in South Asia, focusing specifically on developing countries such as Nepal. This analysis aims to uncover the general inflation trajectory in South Asia and, subsequently, to construct a linear regression model for Nepal. Overall, this endeavor seeks to offer concise yet comprehensive insights into South Asia's inflation trends and provide a forecast of inflation rates in Nepal.The dataset, accessible via the following URL: https://raw.githubusercontent.com/topkelama/lfsStorage/main/global_inflation_data.csv,
+
+# Load dataset 
+
+```{r, echo=TRUE}
+inflationDF <- read.csv("https://raw.githubusercontent.com/topkelama/lfsStorage/main/global_inflation_data.csv")
+```
+
+List first 6 rows
+
+```{r, echo=TRUE}
+head(inflationDF)
+```
+
+# Data Cleaning
+select the data from 2007 to 2024
+
+```{r, echo=TRUE}
+# Filter data for the years 2007 to 2024
+inflationDF <- inflationDF %>%
+  select(country_name, indicator_name, X2007:X2024)
+#inflationDF
+```
+I am interested on the inflation rate trend of south Asia
+
+```{r, echo=TRUE}
+# List of South Asian countries
+south_asian_countries <- c("Afghanistan", "Bangladesh", "Bhutan", "India", "Maldives", "Nepal", "Pakistan", "Sri Lanka")
+
+# Filter data for South Asian countries only
+df_south_asian <- inflationDF %>%
+  filter(country_name %in% south_asian_countries)
+#df_south_asian
+```
+
+Filter the rows with NAs
+
+```{r, echo=TRUE}
+# Find rows where there are NA values
+rows_with_na <- df_south_asian %>%
+  rowwise() %>%
+  mutate(any_na = any(is.na(c_across(X2007:X2024)))) %>%
+  filter(any_na) %>%
+  select(-any_na)
+```
+
+Calculate the mean value from the row that has NA and fill the NA with mean value.
+
+```{r, echo=TRUE}
+# Calculate the row-wise mean for the columns X2007 to X2024
+rows_with_na$mean_value <- rowMeans(rows_with_na[,3:ncol(rows_with_na)], na.rm = TRUE)#from 3rd column to last column of the rows with NA data frame. 
+
+# Replace the NA values with the row-wise mean
+df_south_asian <- df_south_asian %>%
+  mutate(across(X2007:X2024, ~ ifelse(is.na(.), rows_with_na$mean_value, .)))
+#df_south_asian
+
+```
+
+# Data Tidying
+
+# Transform to long format
+
+```{r, echo=TRUE}
+# Transform the data into long format
+df_south_asian_long <- df_south_asian %>%
+  pivot_longer(cols = X2007:X2024, names_to = "Year", values_to = "Inflation_Rate")
+head(df_south_asian_long)
+```
+Remove the 'X' from Year 
+
+```{r, echo=TRUE}
+# Remove 'X' character from 'Year' column
+df_south_asian_long$Year <- gsub("X", "", df_south_asian_long$Year)
+
+# Convert 'Year' column to integer
+df_south_asian_long$Year <- as.integer(df_south_asian_long$Year)
+str(df_south_asian_long)
+```
+
+Plot the South Asian Inflation trend from 2007 to 2024
+
+```{r, echo=TRUE}
+# Plot the inflation rates
+df_south_asian_long$Year <- as.factor(df_south_asian_long$Year)
+
+# Plot the inflation rates
+ggplot(df_south_asian_long, aes(x = Year, y = Inflation_Rate, color = country_name, group = country_name)) +
+  geom_line() +
+  labs(title = "Inflation Rates of South Asian Countries (2007-2024)",
+       x = "Year", y = "Inflation Rate (%)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  scale_x_discrete(breaks = unique(df_south_asian_long$Year))
+```
+
+
+Filter the country Nepal and put it in long format
+
+```{r, echo=TRUE}
+# Filter data for Nepal only
+df_nepal <- df_south_asian %>%
+  filter(country_name == "Nepal")
+
+# Transform data into long format
+df_nepal_long <- df_nepal %>%
+  pivot_longer(cols = X2007:X2024, names_to = "Year", values_to = "Inflation_Rate")
+```
+
+Remove 'X' from 'Year' column if any
+Convert 'Year' column to integer data type
+
+```{r}
+# Remove 'X' character from 'Year' column
+df_nepal_long$Year <- gsub("X", "", df_nepal_long$Year)
+# Convert 'Year' column to integer
+df_nepal_long$Year <- as.integer(df_nepal_long$Year)
+#df_nepal_long
+```
+
+
+
+```{r, echo=TRUE}
+# Build a linear regression model
+lm_model <- lm(Inflation_Rate ~ as.integer(Year), data = df_nepal_long)
+
+# Summary of the model
+summary(lm_model)
+```
+
+In summary, this analysis of the global inflation dataset has delved into inflation trends in South Asia, with a particular focus on developing nations such as Nepal. Through this exploration, a predictive model for Nepal's inflation rates has been developed, providing insights that can aid in strategic planning and decision-making for economic stability and growth in the region.
