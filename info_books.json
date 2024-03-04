@@ -1,0 +1,39 @@
+[
+    {
+        "Title": "Cloud Essentials+ Study Guide",
+        "Authors": [
+            "Quentin Docter",
+            "Cory Fuchs"
+        ],
+        "Pages": 368,
+        "Release Year": 2020,
+        "Price": 35.68,
+        "ISBN": "918-1-119-64222-0"
+
+    },
+
+    {
+        "Title": "Data Science Using Python and R",
+        "Authors": [
+            "Chantal D. Larose",
+            "Daniel T.Larose"
+        ],
+        "Pages": 247,
+        "Release Year": 2019,
+        "Price": 90.15,
+        "ISBN": "9781119526834"
+    },
+
+    {
+        "Title": "Kubernetes Up and Running",
+        "Authors": [
+            "Brendan Burns",
+            "Joe Beda",
+            "Kelsey Hightower"
+        ],
+        "Pages": 277,
+        "Release Year": 2019,
+        "Price": 47.82,
+        "ISBN": "978-1-492-04653-0"   
+    }
+]
