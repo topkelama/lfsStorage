@@ -2,8 +2,8 @@
     <book>
         <Title>Cloud Essentials+ Study Guide</Title>
         <Authors>
-            <Author>Quentin Docter</Author>
-            <Author>Cory Fuchs</Author>
+            <Author1>Quentin Docter</Author1>
+            <Author2>Cory Fuchs</Author2>
         </Authors>
         <Pages>368</Pages>
         <Release_Year>2020</Release_Year>
@@ -14,8 +14,8 @@
     <book>
         <Title>Data Science Using Python and R</Title>
         <Authors>
-            <Author>Chantal D. Larose</Author>
-            <Author>Daniel T.Larose</Author>
+            <Author1>Chantal D. Larose</Author1>
+            <Author2>Daniel T.Larose</Author2>
         </Authors>
         <Pages>247</Pages>
         <Release_Year>2019</Release_Year>
@@ -26,9 +26,9 @@
     <book>
         <Title>Kubernetes Up and Running</Title>
         <Authors>
-            <Author>Brendan Burns</Author>
-            <Author>Joe Beda</Author>
-            <Author>Kelsey Hightower</Author>
+            <Author1>Brendan Burns</Author1>
+            <Author2>Joe Beda</Author2>
+            <Author3>Kelsey Hightower</Author3>
         </Authors>
         <Pages>277</Pages>
         <Release_Year>2019</Release_Year>
