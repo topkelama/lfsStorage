@@ -1,0 +1,140 @@
+---
+title: "Assignment7"
+author: "Chhiring Lama"
+date: "2024-03-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Books Info in 3 different file formats
+
+Load libraries
+
+```{r , echo=TRUE}
+library(dplyr)
+library(tidyr)
+library(xml2)
+library(rjson)
+library(XML)
+library(DT)
+library(rvest)
+library(tibble)
+library(jsonlite)
+
+```
+
+# Load html file 
+
+```{r, echo=TRUE}
+book_info_html <- read_html("https://raw.githubusercontent.com/topkelama/lfsStorage/main/info_books.html")
+```
+
+Convert to dataframe
+
+```{r, echo=TRUE}
+tables1 <- html_table(book_info_html)
+book_df_html <- data.frame(tables1[[1]], stringsAsFactors = FALSE)
+book_df_html
+```
+# Load xml file
+
+```{r, echo=TRUE}
+book_info_xml <- read_xml("https://raw.githubusercontent.com/topkelama/lfsStorage/main/info_books.xml")
+```
+
+convert to dataframe
+
+```{r, echo=TRUE}
+bookInfo_parse <- xmlParse(book_info_xml)
+book_xml_df <- xmlToDataFrame(bookInfo_parse, stringsAsFactors = FALSE)
+
+```
+
+```{r, echo=TRUE}
+book_xml_df
+```
+
+
+```{r, echo=FALSE}
+# # Extract authors from XML data
+# Authors <- lapply(xml_find_all(book_info_xml, xpath = "//Authors"), function(authors) {
+#   xml_children(authors) %>% 
+#     xml_text() %>% 
+#     trimws()
+# })
+# 
+# Pages <- as.integer(xml_text(xml_find_all(book_info_xml, xpath = "//Pages")))
+# Release_Year <- as.integer(xml_text(xml_find_all(book_info_xml, xpath = "//Release_Year")))
+# Price <- as.numeric(xml_text(xml_find_all(book_info_xml, xpath = "//Price")))
+# ISBN <- xml_text(xml_find_all(book_info_xml, xpath = "//ISBN"))
+```
+
+
+```{r, echo=FALSE}
+# # Create data frame
+# book_df <- data.frame(
+#   Title = rep(Title, lengths(Authors)),
+#   Authors = unlist(Authors),
+#   Pages = rep(Pages, lengths(Authors)),
+#   Release_Year = rep(Release_Year, lengths(Authors)),
+#   Price = rep(Price, lengths(Authors)),
+#   ISBN = rep(ISBN, lengths(Authors))
+# )
+# 
+# # Print the data frame
+# print(book_df)
+```
+
+# Load json file
+
+```{r, echo=TRUE}
+json_file <- "https://raw.githubusercontent.com/topkelama/lfsStorage/main/info_books.json"
+download.file(json_file, destfile = "info_books.json", quiet = TRUE)
+```
+
+
+```{r, echo=TRUE}
+# Read and parse the JSON file
+book_info_json <- fromJSON("info_books.json")
+```
+
+
+```{r, echo=TRUE}
+# Expand the Authors list into separate rows
+book_info_json <- book_info_json %>%
+  mutate(Authors = lapply(Authors, toString)) %>%
+  unnest(Authors)
+book_info_json
+```
+
+
+
+```{r, echo=FALSE}
+# # Create a data frame
+# book_df_json <- data.frame(
+#   Title = rep(book_info_json$Title, sapply(book_info_json$Authors, length)),
+#   Authors = unlist(book_info_json$Authors),
+#   Pages = rep(book_info_json$Pages, sapply(book_info_json$Authors, length)),
+#   Release_Year = rep(book_info_json$`Release Year`, sapply(book_info_json$Authors, length)),
+#   Price = rep(book_info_json$Price, sapply(book_info_json$Authors, length)),
+#   ISBN = rep(book_info_json$ISBN, sapply(book_info_json$Authors, length))
+# )
+# # View the data frame
+# print(book_df_json)
+
+```
+
+File links:-
+<a href="https://raw.githubusercontent.com/topkelama/lfsStorage/main/info_books.xml">XML File</a>
+<a href="https://raw.githubusercontent.com/topkelama/lfsStorage/main/info_books.json">JSON File</a>
+<a href="https://raw.githubusercontent.com/topkelama/lfsStorage/main/info_books.html">HTML File</a>
+
+
+
+
+Conclusion:- The JSON file did not have issue with the nested lists such as Author column, where there are multiple authors for a single Title. It automatically, did put in long format. However, with the xml and json, it did put multiple authors in a single row under the Authors column. Three dataframes have similarities but not identical. 
+
+
