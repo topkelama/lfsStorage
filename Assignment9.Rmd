@@ -1,0 +1,89 @@
+---
+title: "Assignment9"
+author: "Chhiring Lama, William Berritt, Puja Roy"
+date: "2024-03-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This R document will demonstrate how to utilize the Web APIs to scrap the data from different websites. I am using The New York Times API to extract the information about top selling books. 
+
+
+```{r, echo=TRUE}
+library(httr)
+library(jsonlite)
+library(request)
+library(dplyr)
+```
+
+# Mask the API Key
+
+
+```{r, echo=FALSE}
+Sys.setenv(TIMES_API_KEY = "aWiG8Kn4388tNE7GvGBZAU2GmJDpSsnX")
+```
+
+Load json data from New York Times
+```{r,echo=TRUE}
+url_times <- paste0('https://api.nytimes.com/svc/books/v3/lists/current/hardcover-fiction.json?api-key=',Sys.getenv("TIMES_API_KEY"))
+```
+
+
+Read json data and assign to jsonDF1
+```{r, echo=TRUE}
+jsonDF1 <- fromJSON(url_times) 
+```
+
+```{r, echo=TRUE}
+head(jsonDF1)
+```
+
+# Transformation
+
+```{r, echo=TRUE}
+# Extracting relevant fields
+df <- jsonDF1$results$books %>%
+  mutate(
+   # list_name = jsonDF1$results$list_name,
+    bestsellers_date = jsonDF1$results$bestsellers_date,
+    published_date = jsonDF1$results$published_date,
+    title = as.character(title),
+    weeks_on_list = as.numeric(weeks_on_list),
+    author = as.character(author),
+    description = as.character(description),
+    publisher = as.character(publisher),
+    price = as.numeric(price),
+    book_image = as.character(book_image),
+    amazon_product_url = as.character(amazon_product_url)
+  ) %>%
+  select(
+    #list_name,
+    bestsellers_date,
+    published_date,
+    rank,
+    title,
+    weeks_on_list,
+    author,
+    description,
+    publisher,
+    price,
+    book_image,
+    amazon_product_url
+  )
+
+# View the transformed data frame
+head(df)
+```
+
+change into a dataframe
+
+```{r, echo=TRUE}
+jsonDF <- as.data.frame(df)
+head(jsonDF)
+```
+
