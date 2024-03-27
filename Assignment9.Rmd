@@ -1,6 +1,6 @@
 ---
 title: "Assignment9"
-author: "Chhiring Lama, William Berritt, Puja Roy"
+author: "Chhiring Lama"
 date: "2024-03-18"
 output: html_document
 ---
@@ -10,7 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Introduction
-
 This R document will demonstrate how to utilize the Web APIs to scrap the data from different websites. I am using The New York Times API to extract the information about top selling books. 
 
 
@@ -81,7 +80,6 @@ head(df)
 ```
 
 change into a dataframe
-
 ```{r, echo=TRUE}
 jsonDF <- as.data.frame(df)
 head(jsonDF)
