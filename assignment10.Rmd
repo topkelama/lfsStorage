@@ -1,0 +1,193 @@
+---
+title: "Assignment10"
+author: "Chhiring Lama"
+date: "2024-03-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load libraries
+
+```{r, echo=TRUE}
+library(dplyr)
+library(tidyverse)
+library(tidytext)
+library(wordcloud)
+library(gutenbergr)
+```
+
+# Introduction
+
+In this sentiment analysis three different corpus are taken and used different lexicons for each. 
+
+The base code for this assignemnet is taken directy from chapter 2 of Text Mining with R: A Tidy Approach https://www.tidytextmining.com/sentiment.html
+
+```{r, echo=TRUE}
+get_sentiments("bing")
+```
+
+```{r, echo=TRUE}
+get_sentiments("afinn")
+```
+
+```{r, echo=TRUE}
+get_sentiments("nrc")
+```
+# List book titles from gutenberg_works()
+```{r, echo=TRUE}
+all_books <- gutenberg_works() %>%
+  select(title)
+all_books
+```
+# Get a specific corpus 
+
+```{r, echo=TRUE}
+paradise <- gutenberg_works(title == "Paradise Regained") %>%
+  gutenberg_download(meta_fields = "title")
+paradise
+```
+# Tokenization
+
+```{r, echo=TRUE}
+# Mutate chapter and linenumber
+# Tokenize the text
+paradise1 <- paradise %>%
+  mutate(linenumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("[IVXLCDM]+", ignore_case = TRUE)))) %>%
+    ungroup()%>%
+  unnest_tokens(word, text)
+```
+# Perform sentiment analysis using the Bing lexicon
+
+```{r, echo=TRUE}
+paradise_sentiments <- paradise1 %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(title, index = linenumber %/% 80, sentiment) %>%
+  pivot_wider(names_from = sentiment, values_from = n, values_fill = 0) %>% 
+  mutate(sentiment = positive - negative)%>%
+    mutate(lexicon = "BING")
+```
+
+# Plot the negative and positive
+
+```{r, echo=TRUE}
+ggplot(paradise_sentiments, aes(index, sentiment, fill = title)) +
+  geom_col() +
+  scale_fill_manual(values = "skyblue") +
+  theme_minimal()
+```
+# Afinn lexicon
+
+
+```{r, echo=TRUE}
+get_sentiments("afinn")
+```
+# Get a corpus for afinn
+
+```{r, echo=TRUE}
+tragedy <- gutenberg_works(title == "The Tragedy of Pudd'nhead Wilson") %>%
+  gutenberg_download(meta_fields = "title")
+```
+# Tokenization
+
+```{r, echo=TRUE}
+tragedy1 <- tragedy %>%
+  mutate(linenumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("[IVXLCDM]+", ignore_case = TRUE)))) %>%
+    ungroup()%>%
+  unnest_tokens(word, text)
+```
+# Perform sentiment analysis using AFINN lexicon
+
+```{r, echo=TRUE}
+sentiments_afinn <- tragedy1 %>%
+  inner_join(get_sentiments("afinn")) %>%
+  group_by(index = linenumber %/% 80) %>%
+  summarise(sentiment = sum(value)) %>% 
+  mutate(lexicon = "AFINN")
+
+```
+# Plot the negative and positive 
+
+```{r, echo=TRUE}
+ggplot(sentiments_afinn, aes(x = index, y = sentiment)) +
+  geom_line(color = "blue") +
+  geom_point(color = "blue", size = 2) +
+  labs(title = "Sentiment Analysis using AFINN Lexicon",
+       x = "Index (Group of Lines)",
+       y = "Sentiment Score",
+       caption = "Method: AFINN") +
+  theme_minimal()
+```
+# filer the word 'sadness'from nrc lexicon and assign it to nrc_lexicon
+
+```{r,echo=TRUE}
+nrc_lexicon <- get_sentiments("nrc")%>%
+    filter(sentiment == "sadness")
+
+```
+
+# Get a corpus for sentimental analysis with nrc lexicon
+
+```{r, echo=TRUE}
+the_poison <- gutenberg_works(title == "The Poison Belt") %>%
+  gutenberg_download(meta_fields = "title")
+```
+# Tokenization
+
+```{r, echo=TRUE}
+the_poison1 <- the_poison %>%
+  mutate(linenumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("[IVXLCDM]+", ignore_case = TRUE)))) %>%
+    ungroup()%>%
+  unnest_tokens(word, text)
+```
+# Perform sentiment analysis using NRC lexicon
+
+```{r, echo=TRUE}
+sadness_words <- the_poison1 %>%
+  inner_join(filter(nrc_lexicon, sentiment == "sadness"), by = "word") %>%
+  count(word, sort = TRUE)%>%
+    mutate(lexicon = "NRC")
+```
+# Plot the output from above analysis
+
+```{r, echo=TRUE}
+# To avoid the cowded words in y axis it is limited to top 20
+top_n_words <- 20
+
+# Filter the top N most frequent words
+top_sadness_words <- sadness_words %>%
+  slice_max(n, n = top_n_words)
+
+# Create a ggplot to visualize the top N word frequencies
+ggplot(top_sadness_words, aes(x = reorder(word, n), y = n)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Top 20 Words Associated with Sadness",
+       x = "Word",
+       y = "Frequency") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 10),  # Adjust text size
+        plot.title = element_text(size = 14)) +  # Adjust title size
+  coord_flip()  # Flip the coordinates to display horizontally
+```
+```{r, echo=TRUE}
+all_sentiments <- bind_rows(sadness_words, sentiments_afinn, paradise_sentiments)
+```
+
+# Plotting to compare sentiment scores obtained from different lexicons
+
+```{r, echo=TRUE}
+
+library(ggplot2)
+
+ggplot(all_sentiments, aes(x = index, y = sentiment, color = lexicon)) +
+  geom_line() +
+  labs(title = "Comparison of Sentiment Scores from Different Lexicons",
+       x = "Index",
+       y = "Sentiment Score") +
+  theme_minimal()
+```
+
