@@ -1,0 +1,142 @@
+---
+title: "Global Baseline Estimate"
+author: "Chhiring Lama"
+date: "2024-04-01"
+output: html_document
+---
+
+## Implementing Global Baseline Estimate Recommender System in R
+
+# Load Libraries
+
+```{r echo=TRUE}
+#library(tidyverse)
+library(dplyr)
+library(DBI)
+library(RMySQL)
+```
+
+```{r, echo=FALSE}
+Sys.setenv(PASSWORD_DB = "lama65")
+```
+
+## Connect to MySQL Database
+ password has been masked
+
+```{r echo=TRUE}
+lamadb <- dbConnect(RMySQL::MySQL(), 
+                 user = "chhiring.lama65", 
+                 password = Sys.getenv("PASSWORD_DB"),
+                 dbname = "chhiring.lama65",
+                 host = "cunydata607sql.mysql.database.azure.com")
+```
+
+# List the tables
+```{r echo=TRUE}
+dbListTables(lamadb)
+```
+
+# Show Column Names using dbListFields function (assigned it to column_names)
+```{r echo=TRUE}
+table_name <- "movie_rating"  
+column_names <- dbListFields(lamadb, table_name)
+```
+
+# Construct the SQL query using sprintf function and then retrieve the data from MySQL database using dbGetQuery function
+```{r echo=TRUE}
+query <- sprintf("SELECT * FROM %s", table_name)
+table_data <- dbGetQuery(lamadb, query)
+
+```
+
+
+```{r echo=TRUE}
+table_data
+```
+
+# Import the table from MySQL back to R
+
+```{r echo=TRUE}
+table_name <- "movie_rating"
+
+query <- paste("SELECT * FROM", table_name)
+
+table_data <- dbGetQuery(lamadb, query)
+```
+
+```{r echo=TRUE}
+table_data
+```
+## Implement Global Baseline Estimate 
+# Calculate global mean rating
+
+```{r, echo=TRUE}
+str(table_data)
+```
+
+ Convert list columns to numeric vectors
+```{r, echo=TRUE}
+table_data[, 5:9] <- lapply(table_data[, 5:9], function(x) unlist(x))
+```
+
+
+ Convert rating columns to numeric
+```{r, echo=TRUE}
+
+table_data[, 5:9] <- lapply(table_data[, 5:9], as.numeric)
+```
+
+# Calculate global mean rating
+```{r, echo=TRUE}
+global_mean <- mean(unlist(table_data[, 5:9]), na.rm = TRUE)
+```
+
+# Calculate mean rating per movie
+
+```{r, echo=TRUE}
+
+movie_means <- colMeans(table_data[, 5:9], na.rm = TRUE)
+```
+
+# Find the baseline rating
+```{r, echo=TRUE}
+# Subtract movie means from global mean
+baseline_ratings <- global_mean - movie_means
+```
+
+# Fill NA values in each column with the corresponding baseline rating
+
+```{r, echo=TRUE}
+
+table_data$The_Creator[is.na(table_data$The_Creator)] <- baseline_ratings["The_Creator"]
+table_data$The_Holdovers[is.na(table_data$The_Holdovers)] <- baseline_ratings["The_Holdovers"]
+table_data$The_Marvels[is.na(table_data$The_Marvels)] <- baseline_ratings["The_Marvels"]
+table_data$Wonka[is.na(table_data$Wonka)] <- baseline_ratings["Wonka"]
+table_data$Society_of_the_Snow[is.na(table_data$Society_of_the_Snow)] <- baseline_ratings["Society_of_the_Snow"]
+
+```
+
+```{r, echo=TRUE}
+baseline_ratings
+
+```
+
+
+
+```{recho=TRUE}
+# Display updated table_data
+print(table_data)
+
+```
+# Write the dataframe to MySQL and create a new table as 'gbe_updated'
+
+```{r, echo=TRUE}
+
+dbWriteTable(lamadb, "gbe_updated", table_data, overwrite = TRUE)
+```
+# Best security practice, disconnect from the database
+
+```{r, echo=TRUE}
+dbDisconnect(lamadb)
+```
+
