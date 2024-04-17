@@ -1,0 +1,184 @@
+---
+title: "Data Science in Context"
+author: "Chhiring Lama"
+date: "2024-04-03"
+output: ioslides_presentation
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(jpeg)
+library(tidyr)
+library(forcats)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+```
+
+
+## Decision Tree
+
+DATA 607, Spring 2024<br />
+Chhiring Lama
+
+```{r, echo=FALSE}
+url <- "https://media.githubusercontent.com/media/topkelama/lfsStorage/main/tree_ML.jpg"
+
+```
+
+```{r, echo=FALSE}
+# Download the image
+#download.file(url, destfile = "tree_ML.jpg", mode = "wb")
+```
+
+```{r, echo=FALSE}
+# # Load the downloaded image
+# img <- readJPEG("tree_ML.jpg")
+# 
+# # Get the dimensions of the image
+# img_width <- dim(img)[2]
+# img_height <- dim(img)[1]
+# 
+# # Create a plot with appropriate dimensions
+# plot(1, type = "n", xlab = "", ylab = "", xlim = c(0, img_width), ylim = c(0, img_height), axes = FALSE)
+# 
+# # Display the image
+# rasterImage(img, 0, 0, img_width, img_height)
+```
+
+## What is a Decision Tree
+
+- Imagine a tree where each branch represents a decision, and each leaf represents an outcome.
+- In simple terms, decision trees help us understand which decisions to make based on certain conditions.
+
+
+## How Does a Decision Tree Work?
+
+- At each step, a decision tree looks at the data and asks questions to make the best choice.
+- It splits the data into smaller groups based on features that help classify or predict outcomes.
+
+## Splitting Criteria
+
+- The tree decides which questions to ask first based on how much they help to separate the data into pure groups.
+- It's like picking the most useful questions to ask to get the clearest answers.
+
+## Load the data from github
+
+```{r, echo=TRUE}
+loan_url <- "https://media.githubusercontent.com/media/topkelama/lfsStorage/main/loan_eligibility.csv"
+loana_df<- read.csv(loan_url)
+```
+
+## Set a seed of random nuber and shuffle the data
+
+```{r, echo=TRUE}
+set.seed(1234)  # Set a seed for reproducibility 
+shuffled_loan <- loana_df[sample(nrow(loana_df)), ] 
+```
+
+## Data Transformation
+
+```{r, echo=TRUE}
+# Drop variables
+clean_loan <- shuffled_loan %>%
+  select(-c(Loan.ID, Customer.ID)) %>%
+  # Convert to factor level
+  mutate(Term = factor(Term),
+         Years.in.current.job = factor(Years.in.current.job),
+         Home.Ownership = factor(Home.Ownership),
+         Purpose = factor(Purpose),
+         Bankruptcies = factor(Bankruptcies),
+         Tax.Liens = factor(Tax.Liens)) %>%
+  na.omit()
+```
+## Check current loan status
+
+```{r, echo=TRUE}
+clean_loan <- clean_loan %>%
+  mutate(Loan_Status = ifelse(Current.Loan.Amount < 500000, "Approved", "Denied"))
+```
+
+## Create Fucntion for Train and Test
+
+```{r, echo=TRUE}
+create_train_test <- function(data, size = 0.8, train = TRUE) {
+    n_row <- nrow(data)  
+    total_row <- round(size * n_row) 
+    
+    train_sample <- sample(n_row, total_row) 
+    
+    if (train == TRUE) {
+        return(data[train_sample, ])  
+    } else {
+        test_sample <- sample(setdiff(1:n_row, train_sample), n_row - total_row)
+        return(data[test_sample, ])  
+    }
+}
+```
+
+## Dataset Splitting into 80/20
+
+```{r, echo=TRUE}
+train_set <- create_train_test(clean_loan, size = 0.8, train = TRUE)
+dim(train_set)
+
+test_set <- create_train_test(clean_loan, size = 0.8, train = FALSE)
+dim(test_set)
+```
+
+## Define the formula for the decision tree model
+
+```{r, echo=TRUE}
+formula <- Loan_Status ~ Credit.Score + Years.in.current.job + Home.Ownership
+```
+
+## Build the decision tree model using rpart
+
+```{r, echo=TRUE}
+decision_tree <- rpart(formula, data = train_set, method = "class")
+```
+
+## Print the summary of the decision tree model
+
+```{r, echo=TRUE}
+printcp(decision_tree)
+```
+
+## Slide with Plot
+
+```{r, echo=TRUE}
+# Plot the decision tree
+rpart.plot(decision_tree, uniform = TRUE, main = "Decision Tree Model")
+
+
+```
+
+## Evaluate the model on the testing set <br />
+ And Calculate accuracy
+
+```{r,echo=TRUE}
+predictions <- predict(decision_tree, test_set, type = "class")
+
+accuracy <- mean(predictions == test_set$Loan_Status)
+print(paste("Accuracy of the decision tree model:", round(accuracy * 100, 2), "%"))
+```
+
+## The End
+
+
+## Citation:- 
+
+Personal loan modeling. (2020, March 10). Kaggle. https://www.kaggle.com/datasets/teertha/personal-loan-modeling
+
+Memberdev_Admin. (2023, March 31). Om Swami Official Writings & Courses. os.me - a Spiritual Home. https://os.me/short-stories/the-upside-down-tree/
+
+
+
+
+
