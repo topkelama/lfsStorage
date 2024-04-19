@@ -1,0 +1,154 @@
+---
+title: "Project 4"
+author: "Chhiring Lama"
+date: "2024-04-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Introduction
+
+ In this project, I aim to develop a machine learning model to classify emails as either spam or legitimate (ham). I utilize a dataset containing examples of both types of emails, where I preprocess by cleaning and converting into a suitable format for analysis. Leveraging the Naive Bayes classifier, I train the model on a portion of the dataset and evaluate its performance on unseen data. By computing a confusion matrix and accuracy metrics, I assess the effectiveness of the model in accurately distinguishing between spam and ham emails.               
+
+```{r, echo=TRUE}
+library(dplyr)
+library(tidyr)
+library(tm)
+library(SnowballC)
+```
+
+
+# Download the dataset
+
+```{r, echo=TRUE}
+download.file("https://spamassassin.apache.org/old/publiccorpus/20030228_easy_ham.tar.bz2", "easy_ham.tar.bz2")
+download.file("https://spamassassin.apache.org/old/publiccorpus/20030228_spam.tar.bz2", "spam.tar.bz2")
+```
+# Extract the dataset
+
+```{r, echo=TRUE}
+system("tar -xjf easy_ham.tar.bz2")
+system("tar -xjf spam.tar.bz2")
+```
+# Data Cleaning
+
+```{r, echo=TRUE}
+clean_text <- function(text) {
+  # Convert text to lowercase
+  text <- tolower(text)
+  # Remove special characters, numbers, and punctuation
+  text <- gsub("[^a-z\\s]", "", text)
+  # Remove extra whitespaces
+  text <- gsub("\\s+", " ", text)
+  return(text)
+}
+```
+
+# Read and clean ham email
+
+```{r, echo=TRUE}
+ham_emails <- lapply(list.files("easy_ham", full.names = TRUE), function(file) {
+  text <- readLines(file, encoding = "latin1", warn = FALSE)
+  clean_text(text)
+})
+```
+
+# Read and clean spam email
+
+```{r, echo=TRUE}
+# Read and clean spam emails
+spam_emails <- lapply(list.files("spam", full.names = TRUE), function(file) {
+  text <- readLines(file, encoding = "latin1", warn = FALSE)
+  clean_text(text)
+})
+```
+
+# Combine ham and spam emials into a single dataset
+
+```{r, echo=TRUE}
+emails <- c(ham_emails, spam_emails)
+labels <- c(rep("ham", length(ham_emails)), rep("spam", length(spam_emails)))
+```
+
+# Split data into Training and Testing sets
+
+```{r, echo=TRUE}
+set.seed(123) # for reproducibility
+sample_indices <- sample(length(emails), size = round(0.8 * length(emails)))
+train_emails <- emails[sample_indices]
+test_emails <- emails[-sample_indices]
+train_labels <- labels[sample_indices]
+test_labels <- labels[-sample_indices]
+```
+
+# Create a corpus
+
+```{r, echo=TRUE}
+train_corpus <- Corpus(VectorSource(train_emails))
+
+```
+
+# Preprocessing: Remove numbers, punctuation, stopwords, and perform stemming
+
+```{r, echo=TRUE}
+train_corpus <- tm_map(train_corpus, content_transformer(tolower))
+train_corpus <- tm_map(train_corpus, removeNumbers)
+train_corpus <- tm_map(train_corpus, removePunctuation)
+train_corpus <- tm_map(train_corpus, removeWords, stopwords("en"))
+train_corpus <- tm_map(train_corpus, stemDocument)
+```
+
+# Create a document-term matrix
+
+```{r, echo=TRUE}
+dtm <- DocumentTermMatrix(train_corpus)
+```
+
+# Train a Naive Bayes classifiers
+
+```{r, echo=TRUE}
+library(e1071)
+nb_model <- naiveBayes(as.matrix(dtm), train_labels)
+
+```
+
+# Test the trained model
+
+```{r, echo=TRUE}
+
+# Preprocess test data
+test_corpus <- Corpus(VectorSource(test_emails))
+test_corpus <- tm_map(test_corpus, content_transformer(tolower))
+test_corpus <- tm_map(test_corpus, removeNumbers)
+test_corpus <- tm_map(test_corpus, removePunctuation)
+test_corpus <- tm_map(test_corpus, removeWords, stopwords("en"))
+test_corpus <- tm_map(test_corpus, stemDocument)
+```
+
+# Create document-term matrix for test data
+
+```{r, echo=TRUE}
+test_dtm <- DocumentTermMatrix(test_corpus, control = list(dictionary = Terms(dtm)))
+```
+
+# Predict using the trained model
+
+```{r, echo=TRUE}
+predicted_labels <- predict(nb_model, as.matrix(test_dtm))
+```
+
+# Evaluate model performance
+
+```{r, echo=TRUE}
+
+conf_matrix <- table(predicted_labels, test_labels)
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+print(conf_matrix)
+print(paste("Accuracy:", accuracy))
+```
+
+# Conclusion
+
+To conclude, while the developed machine learning model shows initial efforts in email classification, its performance falls short of expectations with an accuracy of only 18%. This underscores the need for further refinement and enhancement.
